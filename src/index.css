@@ -3,45 +3,51 @@
 @theme {
   --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-
-  --color-bg-app: #fdfdfd;
-  --color-bg-surface: #ffffff;
-  --color-stroke-subtle: #f1f5f9;
-  --color-stroke-medium: #e2e8f0;
-  --color-accent-primary: #000000;
-  --color-accent-soft: #f8fafc;
-  --color-text-main: #020617;
-  --color-text-dim: #64748b;
-
-  --radius-xl: 12px;
 }
 
+/* ─── Critical: Reset the package's default white-card base styles ───────────
+   The package's style.css applies bg-white, border, padding, shadow to
+   `.rrule-generator`. Since classNames.container only APPENDS to that class,
+   we must explicitly undo those defaults here so our dark theme can show through.
+   ──────────────────────────────────────────────────────────────────────────── */
+.rrule-generator {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Reset any internal section cards that have hardcoded bg-white */
+.rrule-generator section,
+.rrule-generator [class*="section"],
+.rrule-generator>div>div>div {
+  background: transparent;
+}
+
+/* Fix input text visibility — some browsers default to black text */
+.rrule-generator input[type="number"],
+.rrule-generator input[type="date"],
+.rrule-generator select {
+  color-scheme: dark;
+}
+
+/* ─── App-level body styles ─────────────────────────────────────────────── */
 @layer base {
   body {
-    @apply m-0 bg-[var(--color-bg-app)] text-[var(--color-text-main)] min-h-screen antialiased;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(244, 63, 94, 0.05) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, rgba(251, 146, 60, 0.05) 0px, transparent 50%);
+    @apply m-0 bg-slate-950 text-white min-h-screen antialiased;
   }
 }
 
-.pro-card {
-  @apply bg-[var(--color-bg-surface)] border border-[var(--color-stroke-subtle)] shadow-sm;
-}
-
-.code-font {
-  @apply font-mono;
-}
-
-/* Custom Scrollbar */
+/* ─── Custom scrollbar ──────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 5px;
+  width: 4px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 dark:bg-slate-800 rounded-full;
+  @apply bg-slate-800 rounded-full;
 }

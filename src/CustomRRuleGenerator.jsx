@@ -1,66 +1,102 @@
 /**
  * ChronosEngine.jsx
- *
- * Demo app for react-advanced-rrule-generator.
- *
- * KEY FIXES over the original:
- * 1. classNames strings are defined as a `const` at module top-level so
- *    Tailwind's JIT scanner sees every class statically and includes them
- *    in the bundle. Dynamic strings passed inline to props are invisible
- *    to the scanner — that was why none of your styles appeared.
- *
- * 2. Custom sub-components (FrequencySelect, DayCheckbox) now receive the
- *    correct prop shapes your package actually passes down.
- *
- * 3. The preview panel gives instant copy + integration hint.
- *
- * Install:
- *   npm install react-advanced-rrule-generator
  */
 
 import React, { useState } from 'react';
 import { RRuleGenerator } from 'react-advanced-rrule-generator';
-import 'react-advanced-rrule-generator/dist/style.css';
+// Only needed if you are NOT using Tailwind globally:
+// import 'react-advanced-rrule-generator/dist/style.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CRITICAL FIX: All Tailwind class strings must live here at module top-level.
-//
-// Never build them inside a render function or pass them as inline JSX
-// object literals — e.g. classNames={{ section: `mb-6 ${condition ? ...}` }}
-//
-// The Tailwind JIT/v4 scanner reads your SOURCE FILES statically at build time.
-// It cannot see strings that are computed at runtime or constructed dynamically.
-// If a class string never appears literally in a source file, it never gets
-// included in the CSS bundle, so the style silently does nothing.
-//
-// Rule of thumb: if you can't grep for the exact class name as a plain string
-// in your repo, Tailwind won't include it.
+// classNames — every key the package supports, all overridden for dark theme.
+// Static const at module top-level so Tailwind JIT scanner finds every class.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CN = {
-    container: 'p-0 bg-transparent border-0 shadow-none',
+    // Root wrapper — appended to `.rrule-generator`. The base white-card styles
+    // from style.css are reset via the global CSS rule documented in the header.
+    container: 'bg-transparent border-0 shadow-none p-0',
 
-    section: 'mb-6 p-5 rounded-2xl border transition-colors duration-200 bg-white/[0.04] border-white/[0.08] hover:border-indigo-500/25',
+    // Each logical form section (Repeat / Interval / On Days / End)
+    section: [
+        'mb-4 p-5 rounded-2xl transition-colors duration-200',
+        'bg-white/[0.03] border border-white/[0.07]',
+        'hover:border-indigo-500/30',
+    ].join(' '),
 
-    label: 'block mb-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400',
+    // Section heading labels
+    label: 'block mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-500',
 
-    input: 'w-20 px-3 py-2 rounded-xl text-sm font-bold text-center text-white bg-slate-900 border border-white/10 focus:border-indigo-500 focus:outline-none transition-colors [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none',
+    // Base class applied to ALL buttons (freq + end-mode + etc.)
+    button: [
+        'px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider',
+        'border-2 transition-all duration-200 select-none',
+    ].join(' '),
 
-    previewContainer: 'p-8 rounded-3xl border border-white/[0.08] bg-black/60 flex flex-col justify-center gap-6',
+    // Applied ON TOP of `button` when the button is the active/selected state
+    buttonActive: 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/25 scale-[1.03]',
 
-    previewTitle: 'text-[9px] font-black text-white/25 uppercase tracking-[0.4em]',
+    // Applied ON TOP of `button` when the button is inactive
+    buttonInactive: [
+        'bg-white/[0.04] border-white/[0.08] text-slate-400',
+        'hover:border-indigo-500/40 hover:text-slate-200 hover:bg-white/[0.07]',
+    ].join(' '),
 
-    previewText: 'text-xl font-bold text-white leading-snug tracking-tight',
+    // Number and date inputs
+    input: [
+        'px-3 py-2 rounded-xl text-sm font-bold text-center text-white',
+        'bg-slate-900 border border-white/[0.10]',
+        'focus:border-indigo-500 focus:outline-none',
+        'transition-colors',
+        '[appearance:textfield]',
+        '[&::-webkit-inner-spin-button]:appearance-none',
+        '[&::-webkit-outer-spin-button]:appearance-none',
+    ].join(' '),
 
-    previewCode: 'mt-4 p-4 rounded-2xl border border-white/[0.08] font-mono text-[11px] text-indigo-300 break-all select-all bg-white/[0.04]',
+    // Preview panel container (right half of the internal 2-col grid)
+    previewContainer: [
+        'h-full p-6 rounded-2xl flex flex-col gap-4',
+        'bg-white/[0.03] border border-white/[0.07]',
+    ].join(' '),
+
+    // "Preview" heading inside preview panel
+    previewTitle: 'text-[9px] font-black uppercase tracking-[0.4em] text-white/20',
+
+    // Human-readable recurrence text
+    previewText: 'text-base font-bold text-white leading-snug tracking-tight capitalize',
+
+    // RRULE code string
+    previewCode: [
+        'mt-2 p-4 rounded-xl',
+        'font-mono text-[11px] text-indigo-300 break-all select-all leading-relaxed',
+        'bg-indigo-500/[0.08] border border-indigo-500/[0.12]',
+    ].join(' '),
 };
 
-// ─── Custom Frequency Selector ────────────────────────────────────────────────
-// Props your package passes down:
-//   value    – the RRule freq constant for this option
-//   label    – display string ("Daily", "Weekly" …)
-//   selected – boolean
-//   onClick  – call with value to change frequency
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom DayCheckbox
+// Props: { label: string, checked: boolean, onChange: (checked: boolean) => void }
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CustomDayCheckbox = ({ label, checked, onChange }) => (
+    <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        title={label}
+        className={
+            checked
+                ? 'w-10 h-10 rounded-full flex items-center justify-center select-none text-[11px] font-black border-2 transition-all duration-150 bg-indigo-600 border-indigo-500 text-white scale-110 shadow-md shadow-indigo-600/40'
+                : 'w-10 h-10 rounded-full flex items-center justify-center select-none text-[11px] font-black border-2 transition-all duration-150 bg-white/[0.04] border-white/[0.10] text-slate-500 hover:border-indigo-500/40 hover:text-slate-200'
+        }
+    >
+        {label.slice(0, 2)}
+    </button>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom FrequencySelect
+// Props: { value: number, label: string, selected: boolean, onClick: (value) => void }
+// ─────────────────────────────────────────────────────────────────────────────
 
 const CustomFrequencySelect = ({ value, label, selected, onClick }) => (
     <button
@@ -68,8 +104,8 @@ const CustomFrequencySelect = ({ value, label, selected, onClick }) => (
         onClick={() => onClick(value)}
         className={
             selected
-                ? 'relative flex flex-col items-center gap-1 px-4 py-3 rounded-xl select-none text-[11px] font-black uppercase tracking-wider border-2 transition-all duration-200 bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30 scale-[1.04]'
-                : 'relative flex flex-col items-center gap-1 px-4 py-3 rounded-xl select-none text-[11px] font-black uppercase tracking-wider border-2 transition-all duration-200 bg-white/[0.04] border-white/10 text-slate-500 hover:border-indigo-500/40 hover:text-slate-200'
+                ? 'relative flex items-center justify-center px-5 py-2.5 rounded-xl select-none text-[11px] font-black uppercase tracking-wider border-2 transition-all duration-200 bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30 scale-[1.04]'
+                : 'relative flex items-center justify-center px-5 py-2.5 rounded-xl select-none text-[11px] font-black uppercase tracking-wider border-2 transition-all duration-200 bg-white/[0.04] border-white/[0.08] text-slate-500 hover:border-indigo-500/40 hover:text-slate-200 hover:bg-white/[0.07]'
         }
     >
         {selected && (
@@ -79,29 +115,9 @@ const CustomFrequencySelect = ({ value, label, selected, onClick }) => (
     </button>
 );
 
-// ─── Custom Day Checkbox ─────────────────────────────────────────────────────
-// Props your package passes down:
-//   value    – weekday constant (RRule.MO etc.)
-//   label    – full name ("Monday" …)
-//   checked  – boolean
-//   onChange – call with next checked boolean
-
-const CustomDayCheckbox = ({ label, checked, onChange }) => (
-    <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        title={label}
-        className={
-            checked
-                ? 'w-10 h-10 rounded-full flex items-center justify-center select-none text-[11px] font-black transition-all duration-150 border-2 bg-indigo-600 border-indigo-500 text-white scale-110 shadow-md shadow-indigo-600/40'
-                : 'w-10 h-10 rounded-full flex items-center justify-center select-none text-[11px] font-black transition-all duration-150 border-2 bg-white/[0.04] border-white/10 text-slate-500 hover:border-indigo-500/30 hover:text-slate-300'
-        }
-    >
-        {label.slice(0, 2)}
-    </button>
-);
-
-// ─── Main App ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Main App
+// ─────────────────────────────────────────────────────────────────────────────
 
 const ChronosEngine = () => {
     const [rrule, setRrule] = useState('');
@@ -117,113 +133,121 @@ const ChronosEngine = () => {
     return (
         <div className="min-h-screen bg-slate-950 text-white overflow-hidden">
 
-            {/* Ambient glows */}
-            <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-[700px] h-[700px] bg-indigo-600/[0.08] rounded-full blur-[130px]" />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-violet-600/[0.06] rounded-full blur-[110px]" />
+            {/* Ambient background glows */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute -top-32 left-1/4 w-[700px] h-[700px] bg-indigo-600/[0.07] rounded-full blur-[140px]" />
+                <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] bg-violet-600/[0.05] rounded-full blur-[120px]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-px h-full bg-white/[0.02]" />
             </div>
 
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 min-h-screen">
+            <div className="relative z-10 max-w-6xl mx-auto px-6 py-12 space-y-10">
 
-                {/* ── Left: Generator ─── */}
-                <div className="lg:col-span-7 p-8 lg:p-14 overflow-y-auto space-y-10">
-
-                    <header>
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/40 shrink-0">
-                                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.35em]">Chronos Engine</p>
-                                <h1 className="text-2xl font-black tracking-tight leading-none text-white">Recurrence Designer</h1>
-                            </div>
+                {/* ── Header ── */}
+                <header className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-600/40 shrink-0">
+                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
                         </div>
-                        <p className="text-sm text-slate-500 font-medium max-w-sm pl-[52px]">
-                            Build RFC 5545–compliant iCal recurrence rules visually.
-                            Powered by{' '}
-                            <span className="text-indigo-400 font-semibold">react-advanced-rrule-generator</span>.
-                        </p>
-                    </header>
-
-                    {/* ── The package component, fully wired ── */}
-                    <RRuleGenerator
-                        onChange={(newRrule) => setRrule(newRrule)}
-                        classNames={CN}
-                        components={{
-                            FrequencySelect: CustomFrequencySelect,
-                            DayCheckbox: CustomDayCheckbox,
-                        }}
-                    />
-
-                    <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.5em] pt-4">
-                        react-advanced-rrule-generator · iCal RFC 5545
-                    </p>
-                </div>
-
-                {/* ── Right: Preview ─── */}
-                <div className="lg:col-span-5 bg-black/40 border-l border-white/[0.05] p-8 lg:p-12 flex flex-col justify-center gap-8">
-
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.05] rounded-full border border-white/[0.08]">
-                            <div className={`w-2 h-2 rounded-full transition-colors ${rrule ? 'bg-emerald-500' : 'bg-slate-700'}`} />
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                                {rrule ? 'Valid rule' : 'Pending'}
-                            </span>
-                        </div>
-                        <div className="px-3 py-1.5 bg-white/[0.05] rounded-full border border-white/[0.08]">
-                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                                Format: <span className="text-indigo-400">iCal</span>
-                            </span>
+                        <div>
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.35em] mb-0.5">Chronos Engine</p>
+                            <h1 className="text-3xl font-black tracking-tight leading-none text-white">Recurrence Designer</h1>
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">Live RRule String</p>
-                        <div className="relative group">
-                            <div className="min-h-[72px] p-5 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center">
+                    {/* Live status badge */}
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] border border-white/[0.07] mt-1">
+                        <div className={`w-2 h-2 rounded-full transition-colors duration-500 ${rrule ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-slate-700'}`} />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                            {rrule ? 'Valid Rule' : 'Pending'}
+                        </span>
+                    </div>
+                </header>
+
+                {/* ── Main grid: generator + output panel ── */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+                    {/* Generator takes 2/3 width */}
+                    <div className="xl:col-span-2">
+                        <RRuleGenerator
+                            onChange={setRrule}
+                            classNames={CN}
+                            components={{
+                                DayCheckbox: CustomDayCheckbox,
+                                FrequencySelect: CustomFrequencySelect,
+                            }}
+                        />
+                    </div>
+
+                    {/* Output panel — 1/3 width, sticky */}
+                    <div className="xl:col-span-1 space-y-4 xl:sticky xl:top-6 self-start">
+
+                        {/* RRule string output */}
+                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.07] space-y-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Live RRule String</p>
+
+                            <div className="relative group min-h-[60px] flex items-center">
                                 {rrule ? (
-                                    <span className="font-mono text-sm text-indigo-300 break-all leading-relaxed select-all">
-                                        {rrule}
-                                    </span>
+                                    <>
+                                        <span className="font-mono text-sm text-indigo-300 break-all leading-relaxed select-all pr-12">
+                                            {rrule}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={copy}
+                                            className="absolute top-0 right-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-indigo-600/25 border border-indigo-500/25 text-indigo-300 hover:bg-indigo-600/40 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            {copied ? '✓' : 'Copy'}
+                                        </button>
+                                    </>
                                 ) : (
-                                    <span className="text-white/20 text-sm italic">Configure a rule on the left…</span>
+                                    <span className="text-white/20 text-sm italic">Configure a rule to see output…</span>
                                 )}
                             </div>
-                            {rrule && (
-                                <button
-                                    type="button"
-                                    onClick={copy}
-                                    className="absolute top-3 right-3 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/50 transition-all opacity-0 group-hover:opacity-100"
-                                >
-                                    {copied ? '✓ Copied' : 'Copy'}
-                                </button>
-                            )}
                         </div>
-                    </div>
 
-                    <div className="space-y-3">
-                        <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">Integration Snippet</p>
-                        <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                        {/* Format badges */}
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { label: 'Format', value: 'iCal', color: 'text-indigo-400' },
+                                { label: 'Spec', value: 'RFC 5545', color: 'text-violet-400' },
+                                { label: 'Pkg', value: 'v0.1.0', color: 'text-slate-400' },
+                            ].map(b => (
+                                <div key={b.label} className="px-3 py-1.5 bg-white/[0.04] rounded-full border border-white/[0.07]">
+                                    <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                                        {b.label}: <span className={`${b.color} font-black`}>{b.value}</span>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Integration snippet */}
+                        <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-2">
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/15">Quick Integration</p>
                             <pre className="text-[11px] text-slate-600 font-mono whitespace-pre-wrap leading-relaxed">{
-                                `import { RRuleGenerator } from
-  'react-advanced-rrule-generator';
+                                `import { RRuleGenerator }
+  from 'react-advanced-rrule-generator';
 
 <RRuleGenerator
-  onChange={(r) => console.log(r)}
+  onChange={setRrule}
   classNames={CN}
   components={{
-    FrequencySelect: MyFreqBtn,
-    DayCheckbox: MyDayPill,
+    DayCheckbox: MyDay,
+    FrequencySelect: MyFreq,
   }}
 />`
                             }</pre>
                         </div>
-                    </div>
 
+                    </div>
                 </div>
+
+                {/* Footer */}
+                <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.5em]">
+                    react-advanced-rrule-generator · MIT · omkar077
+                </p>
             </div>
         </div>
     );
