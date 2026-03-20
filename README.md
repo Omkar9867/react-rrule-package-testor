@@ -1,16 +1,26 @@
-# React + Vite
+# Chronos Engine - RRule Generator Test App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project demonstrates the powerful customization capabilities of the [react-advanced-rrule-generator](https://www.npmjs.com/package/react-advanced-rrule-generator) package.
 
-Currently, two official plugins are available:
+## Preview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+![Chronos Engine SaaS UI](./public/image.png)
 
-## React Compiler
+## How to Customize
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Transformed the base package into a premium SaaS-style dashboard ("Chronos Engine") by:
 
-## Expanding the ESLint configuration
+1.  **Utilizing Tailwind v4**: Leveraging the latest Tailwind CSS v4 features for a modern design system.
+2.  **Custom Sub-Components**: Overriding the package's internal components (`FrequencySelect`, `DayCheckbox`) with bespoke React components.
+3.  **Advanced Layout**: Implementing a professional two-panel grid system with a dark-themed live preview.
+4.  **Premium Aesthetics**: Applying a refined Geist-font typography, sophisticated Slate/Indigo palette, and subtle glassmorphism.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Getting Started
+
+1.  Install dependencies: `npm install`
+2.  Run the test environment: `npm run dev`
+3.  Open [http://localhost:5173/](http://localhost:5173/) (or the port shown in your terminal).
+
+---
+
+Powered by [react-advanced-rrule-generator](https://www.npmjs.com/package/react-advanced-rrule-generator)
